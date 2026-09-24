@@ -1,0 +1,3 @@
+{
+  "task": "Fix invoice_total: apply a fractional discount once to the sum of item prices; do not change the public interfaces."
+}

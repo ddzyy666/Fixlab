@@ -1,0 +1,3 @@
+{
+  "task": "Fix order fulfillment across orders.py and stock.py. Aggregate repeated SKU quantities before validating inventory, reject nonpositive/noninteger/bool quantities with ValueError, reject unknown or insufficient stock with ValueError. Mutate stock only after ALL lines validate; on failure leave it unchanged. Return total units fulfilled."
+}

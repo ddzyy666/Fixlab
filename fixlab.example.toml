@@ -1,0 +1,4 @@
+# Copy to fixlab.local.toml and fill in the values.
+api_key = ""
+api_base = "https://api.siliconflow.cn/v1"
+model = "deepseek-ai/DeepSeek-V4-Flash"
