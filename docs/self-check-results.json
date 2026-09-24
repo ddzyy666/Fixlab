@@ -1,0 +1,851 @@
+[
+  {
+    "experiment_id": "b73ae5df8189",
+    "suite": "advanced",
+    "model": "deepseek-ai/DeepSeek-V4-Flash",
+    "backend": "docker",
+    "image": "python:3.11-slim",
+    "repeats": 3,
+    "max_steps": 12,
+    "suite_sha256": "e61e38a5eb69aeef814c3272a529991b53a2f64831d5a745a38775bf044bd655",
+    "harness_sha256": "3dbd24c79944beaa03d819ca20ce2c3ef43d7b9969053b768f1545245178a0ef",
+    "groups": {
+      "off": {
+        "completed_trials": 9,
+        "expected_trials": 9,
+        "successes": 9,
+        "success_rate": 1.0,
+        "execution_errors": 0,
+        "reported_total_tokens": 66619,
+        "token_usage_complete": false,
+        "mean_tokens": null,
+        "tokens_per_success": null,
+        "mean_execution_seconds": 36.76011111111115
+      },
+      "on": {
+        "completed_trials": 9,
+        "expected_trials": 9,
+        "successes": 9,
+        "success_rate": 1.0,
+        "execution_errors": 0,
+        "reported_total_tokens": 185347,
+        "token_usage_complete": true,
+        "mean_tokens": 20594.11111111111,
+        "tokens_per_success": 20594.11111111111,
+        "mean_execution_seconds": 49.59900000000036
+      }
+    },
+    "pairs": [
+      {
+        "repeat": 1,
+        "task_id": "inventory",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 1,
+        "task_id": "money",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 1,
+        "task_id": "pagination",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 2,
+        "task_id": "inventory",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 2,
+        "task_id": "money",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 2,
+        "task_id": "pagination",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 3,
+        "task_id": "inventory",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 3,
+        "task_id": "money",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 3,
+        "task_id": "pagination",
+        "off_success": true,
+        "on_success": true
+      }
+    ],
+    "trials": [
+      {
+        "repeat": 1,
+        "mode": "off",
+        "task_id": "inventory",
+        "source_sha256": "5f505d7f392f60bc0b00bf0172c7e66e7d4074b8a260bbe76a9501f4e4a256e0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 6882,
+          "completion_tokens": 1837,
+          "total_tokens": 8719
+        },
+        "execution_seconds": 52.17200000000594,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "off",
+        "task_id": "money",
+        "source_sha256": "059cf07000601d3c5fd2eeef795c36d41e533b9d2b0337f3e3e4fdca8051ff80",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 6723,
+          "completion_tokens": 1489,
+          "total_tokens": 8212
+        },
+        "execution_seconds": 27.327999999994063,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "off",
+        "task_id": "pagination",
+        "source_sha256": "5b28fa89000a1bba286b58edd42f87d07b5a8da26e85b6402214e2e44ae1d532",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 4571,
+          "completion_tokens": 704,
+          "total_tokens": 5275
+        },
+        "execution_seconds": 11.656000000002678,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "on",
+        "task_id": "inventory",
+        "source_sha256": "5f505d7f392f60bc0b00bf0172c7e66e7d4074b8a260bbe76a9501f4e4a256e0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 22873,
+          "completion_tokens": 3907,
+          "total_tokens": 26780
+        },
+        "execution_seconds": 40.46899999999732,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "on",
+        "task_id": "money",
+        "source_sha256": "059cf07000601d3c5fd2eeef795c36d41e533b9d2b0337f3e3e4fdca8051ff80",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 34320,
+          "completion_tokens": 4414,
+          "total_tokens": 38734
+        },
+        "execution_seconds": 47.67200000000594,
+        "self_check_calls": 3,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "on",
+        "task_id": "pagination",
+        "source_sha256": "5b28fa89000a1bba286b58edd42f87d07b5a8da26e85b6402214e2e44ae1d532",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 13038,
+          "completion_tokens": 2540,
+          "total_tokens": 15578
+        },
+        "execution_seconds": 48.094000000011874,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "on",
+        "task_id": "inventory",
+        "source_sha256": "5f505d7f392f60bc0b00bf0172c7e66e7d4074b8a260bbe76a9501f4e4a256e0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 14065,
+          "completion_tokens": 2843,
+          "total_tokens": 16908
+        },
+        "execution_seconds": 39.07799999999406,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "on",
+        "task_id": "money",
+        "source_sha256": "059cf07000601d3c5fd2eeef795c36d41e533b9d2b0337f3e3e4fdca8051ff80",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 9815,
+          "completion_tokens": 2895,
+          "total_tokens": 12710
+        },
+        "execution_seconds": 51.70299999999406,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "on",
+        "task_id": "pagination",
+        "source_sha256": "5b28fa89000a1bba286b58edd42f87d07b5a8da26e85b6402214e2e44ae1d532",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 23661,
+          "completion_tokens": 3778,
+          "total_tokens": 27439
+        },
+        "execution_seconds": 83.89099999998871,
+        "self_check_calls": 2,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "off",
+        "task_id": "inventory",
+        "source_sha256": "5f505d7f392f60bc0b00bf0172c7e66e7d4074b8a260bbe76a9501f4e4a256e0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5610,
+          "completion_tokens": 1550,
+          "total_tokens": 7160
+        },
+        "execution_seconds": 25.014999999999418,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "off",
+        "task_id": "money",
+        "source_sha256": "059cf07000601d3c5fd2eeef795c36d41e533b9d2b0337f3e3e4fdca8051ff80",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 4977,
+          "completion_tokens": 1231,
+          "total_tokens": 6208
+        },
+        "execution_seconds": 73.23399999999674,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": true,
+        "api_retry_events": [
+          {
+            "attempt": 1,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          }
+        ]
+      },
+      {
+        "repeat": 2,
+        "mode": "off",
+        "task_id": "pagination",
+        "source_sha256": "5b28fa89000a1bba286b58edd42f87d07b5a8da26e85b6402214e2e44ae1d532",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5085,
+          "completion_tokens": 1123,
+          "total_tokens": 6208
+        },
+        "execution_seconds": 23.139999999999418,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "off",
+        "task_id": "inventory",
+        "source_sha256": "5f505d7f392f60bc0b00bf0172c7e66e7d4074b8a260bbe76a9501f4e4a256e0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 4983,
+          "completion_tokens": 1212,
+          "total_tokens": 6195
+        },
+        "execution_seconds": 18.812000000005355,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "off",
+        "task_id": "money",
+        "source_sha256": "059cf07000601d3c5fd2eeef795c36d41e533b9d2b0337f3e3e4fdca8051ff80",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 8322,
+          "completion_tokens": 2795,
+          "total_tokens": 11117
+        },
+        "execution_seconds": 60.5,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "off",
+        "task_id": "pagination",
+        "source_sha256": "5b28fa89000a1bba286b58edd42f87d07b5a8da26e85b6402214e2e44ae1d532",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5962,
+          "completion_tokens": 1563,
+          "total_tokens": 7525
+        },
+        "execution_seconds": 38.98399999999674,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "on",
+        "task_id": "inventory",
+        "source_sha256": "5f505d7f392f60bc0b00bf0172c7e66e7d4074b8a260bbe76a9501f4e4a256e0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 9162,
+          "completion_tokens": 2590,
+          "total_tokens": 11752
+        },
+        "execution_seconds": 33.20299999999406,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "on",
+        "task_id": "money",
+        "source_sha256": "059cf07000601d3c5fd2eeef795c36d41e533b9d2b0337f3e3e4fdca8051ff80",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 16154,
+          "completion_tokens": 3283,
+          "total_tokens": 19437
+        },
+        "execution_seconds": 35.54700000000594,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "on",
+        "task_id": "pagination",
+        "source_sha256": "5b28fa89000a1bba286b58edd42f87d07b5a8da26e85b6402214e2e44ae1d532",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 13540,
+          "completion_tokens": 2469,
+          "total_tokens": 16009
+        },
+        "execution_seconds": 66.73400000001129,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      }
+    ]
+  },
+  {
+    "experiment_id": "6080b1aa36be",
+    "suite": "challenge",
+    "model": "deepseek-ai/DeepSeek-V4-Flash",
+    "backend": "docker",
+    "image": "python:3.11-slim",
+    "repeats": 3,
+    "max_steps": 12,
+    "suite_sha256": "f69c2771fab442918ac9f98c9bc96574979c0cb3dcb50262c46e3f5880d84439",
+    "harness_sha256": "3dbd24c79944beaa03d819ca20ce2c3ef43d7b9969053b768f1545245178a0ef",
+    "groups": {
+      "off": {
+        "completed_trials": 9,
+        "expected_trials": 9,
+        "successes": 9,
+        "success_rate": 1.0,
+        "execution_errors": 0,
+        "reported_total_tokens": 70407,
+        "token_usage_complete": false,
+        "mean_tokens": null,
+        "tokens_per_success": null,
+        "mean_execution_seconds": 35.963666666666136
+      },
+      "on": {
+        "completed_trials": 9,
+        "expected_trials": 9,
+        "successes": 9,
+        "success_rate": 1.0,
+        "execution_errors": 0,
+        "reported_total_tokens": 305570,
+        "token_usage_complete": false,
+        "mean_tokens": null,
+        "tokens_per_success": null,
+        "mean_execution_seconds": 110.68222222222215
+      }
+    },
+    "pairs": [
+      {
+        "repeat": 1,
+        "task_id": "config_layers",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 1,
+        "task_id": "refund_ledger",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 1,
+        "task_id": "tenant_cache",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 2,
+        "task_id": "config_layers",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 2,
+        "task_id": "refund_ledger",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 2,
+        "task_id": "tenant_cache",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 3,
+        "task_id": "config_layers",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 3,
+        "task_id": "refund_ledger",
+        "off_success": true,
+        "on_success": true
+      },
+      {
+        "repeat": 3,
+        "task_id": "tenant_cache",
+        "off_success": true,
+        "on_success": true
+      }
+    ],
+    "trials": [
+      {
+        "repeat": 1,
+        "mode": "off",
+        "task_id": "config_layers",
+        "source_sha256": "5d2900df669f3e1df03b83e815fba07dbddc19cf909c0b2f6183133b85a0d76b",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 4949,
+          "completion_tokens": 1293,
+          "total_tokens": 6242
+        },
+        "execution_seconds": 73.15599999998813,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": true,
+        "api_retry_events": [
+          {
+            "attempt": 1,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          }
+        ]
+      },
+      {
+        "repeat": 1,
+        "mode": "off",
+        "task_id": "refund_ledger",
+        "source_sha256": "c59b71933694fc74defed5bf00404533ff32b1008608fbba056445e559dc60cd",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 6306,
+          "completion_tokens": 1223,
+          "total_tokens": 7529
+        },
+        "execution_seconds": 30.812999999994645,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "off",
+        "task_id": "tenant_cache",
+        "source_sha256": "04601f5fbfd7cd8eae4e8f8b94acd9037d24243e16b9c6529d2772591afcffa0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5499,
+          "completion_tokens": 1484,
+          "total_tokens": 6983
+        },
+        "execution_seconds": 28.453000000008615,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "on",
+        "task_id": "config_layers",
+        "source_sha256": "5d2900df669f3e1df03b83e815fba07dbddc19cf909c0b2f6183133b85a0d76b",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 23996,
+          "completion_tokens": 5147,
+          "total_tokens": 29143
+        },
+        "execution_seconds": 73.35899999999674,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "on",
+        "task_id": "refund_ledger",
+        "source_sha256": "c59b71933694fc74defed5bf00404533ff32b1008608fbba056445e559dc60cd",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 16286,
+          "completion_tokens": 4909,
+          "total_tokens": 21195
+        },
+        "execution_seconds": 61.95299999999406,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 1,
+        "mode": "on",
+        "task_id": "tenant_cache",
+        "source_sha256": "04601f5fbfd7cd8eae4e8f8b94acd9037d24243e16b9c6529d2772591afcffa0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 13706,
+          "completion_tokens": 3784,
+          "total_tokens": 17490
+        },
+        "execution_seconds": 33.937999999994645,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "on",
+        "task_id": "config_layers",
+        "source_sha256": "5d2900df669f3e1df03b83e815fba07dbddc19cf909c0b2f6183133b85a0d76b",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 22807,
+          "completion_tokens": 4737,
+          "total_tokens": 27544
+        },
+        "execution_seconds": 71.0,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "on",
+        "task_id": "refund_ledger",
+        "source_sha256": "c59b71933694fc74defed5bf00404533ff32b1008608fbba056445e559dc60cd",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 17880,
+          "completion_tokens": 7547,
+          "total_tokens": 25427
+        },
+        "execution_seconds": 64.17200000000594,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "on",
+        "task_id": "tenant_cache",
+        "source_sha256": "04601f5fbfd7cd8eae4e8f8b94acd9037d24243e16b9c6529d2772591afcffa0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 68235,
+          "completion_tokens": 11167,
+          "total_tokens": 79402
+        },
+        "execution_seconds": 268.7810000000027,
+        "self_check_calls": 4,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": true,
+        "api_retry_events": [
+          {
+            "attempt": 1,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          },
+          {
+            "attempt": 1,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          },
+          {
+            "attempt": 2,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          }
+        ]
+      },
+      {
+        "repeat": 2,
+        "mode": "off",
+        "task_id": "config_layers",
+        "source_sha256": "5d2900df669f3e1df03b83e815fba07dbddc19cf909c0b2f6183133b85a0d76b",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 6062,
+          "completion_tokens": 1392,
+          "total_tokens": 7454
+        },
+        "execution_seconds": 35.65600000000268,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "off",
+        "task_id": "refund_ledger",
+        "source_sha256": "c59b71933694fc74defed5bf00404533ff32b1008608fbba056445e559dc60cd",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 8690,
+          "completion_tokens": 2510,
+          "total_tokens": 11200
+        },
+        "execution_seconds": 37.98500000000058,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 2,
+        "mode": "off",
+        "task_id": "tenant_cache",
+        "source_sha256": "04601f5fbfd7cd8eae4e8f8b94acd9037d24243e16b9c6529d2772591afcffa0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 7321,
+          "completion_tokens": 1801,
+          "total_tokens": 9122
+        },
+        "execution_seconds": 45.625,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "off",
+        "task_id": "config_layers",
+        "source_sha256": "5d2900df669f3e1df03b83e815fba07dbddc19cf909c0b2f6183133b85a0d76b",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5828,
+          "completion_tokens": 1288,
+          "total_tokens": 7116
+        },
+        "execution_seconds": 24.39100000000326,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "off",
+        "task_id": "refund_ledger",
+        "source_sha256": "c59b71933694fc74defed5bf00404533ff32b1008608fbba056445e559dc60cd",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5813,
+          "completion_tokens": 2040,
+          "total_tokens": 7853
+        },
+        "execution_seconds": 25.98399999999674,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "off",
+        "task_id": "tenant_cache",
+        "source_sha256": "04601f5fbfd7cd8eae4e8f8b94acd9037d24243e16b9c6529d2772591afcffa0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 5967,
+          "completion_tokens": 941,
+          "total_tokens": 6908
+        },
+        "execution_seconds": 21.610000000000582,
+        "self_check_calls": 0,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "on",
+        "task_id": "config_layers",
+        "source_sha256": "5d2900df669f3e1df03b83e815fba07dbddc19cf909c0b2f6183133b85a0d76b",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 32445,
+          "completion_tokens": 5943,
+          "total_tokens": 38388
+        },
+        "execution_seconds": 87.20300000000861,
+        "self_check_calls": 2,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": false,
+        "api_retry_events": []
+      },
+      {
+        "repeat": 3,
+        "mode": "on",
+        "task_id": "refund_ledger",
+        "source_sha256": "c59b71933694fc74defed5bf00404533ff32b1008608fbba056445e559dc60cd",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 17705,
+          "completion_tokens": 4387,
+          "total_tokens": 22092
+        },
+        "execution_seconds": 118.28100000000268,
+        "self_check_calls": 1,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": true,
+        "api_retry_events": [
+          {
+            "attempt": 1,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          }
+        ]
+      },
+      {
+        "repeat": 3,
+        "mode": "on",
+        "task_id": "tenant_cache",
+        "source_sha256": "04601f5fbfd7cd8eae4e8f8b94acd9037d24243e16b9c6529d2772591afcffa0",
+        "outcome": "repaired",
+        "tokens": {
+          "prompt_tokens": 36897,
+          "completion_tokens": 7992,
+          "total_tokens": 44889
+        },
+        "execution_seconds": 217.45299999999406,
+        "self_check_calls": 2,
+        "completion_rejections": 0,
+        "usage_may_be_incomplete": true,
+        "api_retry_events": [
+          {
+            "attempt": 1,
+            "error_type": "RemoteDisconnected",
+            "will_retry": true,
+            "usage_unknown": true
+          }
+        ]
+      }
+    ]
+  }
+]

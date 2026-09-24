@@ -1,0 +1,28 @@
+{
+  "config_layers": {
+    "fixes": {
+      "merge.py": "from copy import deepcopy\n\ndef resolve(defaults, file_config, overrides):\n    def merge(base, update):\n        result=deepcopy(base)\n        for key,value in update.items():\n            if value is None:\n                continue\n            if isinstance(value,dict) and isinstance(result.get(key),dict):\n                result[key]=merge(result[key],value)\n            else:\n                result[key]=deepcopy(value)\n        return result\n    return merge(merge(defaults,file_config),overrides)\n"
+    },
+    "partial": {
+      "merge.py": "def resolve(defaults,file_config,overrides):\n    return {**defaults,**file_config,**overrides}\n"
+    }
+  },
+  "tenant_cache": {
+    "fixes": {
+      "cache.py": "from copy import deepcopy\nclass Cache:\n    def __init__(self): self.entries={}\n    def get(self, key, now):\n        if key not in self.entries: return None\n        expiry,value=self.entries[key]\n        if now>=expiry:\n            del self.entries[key]\n            return None\n        return deepcopy(value)\n    def put(self,key,value,now,ttl):\n        self.entries[key]=(now+ttl,deepcopy(value))\n",
+      "service.py": "from copy import deepcopy\nclass Service:\n    def __init__(self, cache, loader, clock, ttl=10):\n        self.cache,self.loader,self.clock,self.ttl=cache,loader,clock,ttl\n    def fetch(self,tenant,user_id):\n        key=(tenant,user_id)\n        now=self.clock()\n        value=self.cache.get(key,now)\n        if value is None:\n            value=self.loader(tenant,user_id)\n            self.cache.put(key,value,now,self.ttl)\n        return deepcopy(value)\n"
+    },
+    "partial": {
+      "service.py": "class Service:\n    def __init__(self,cache,loader,clock,ttl=10):\n        self.cache,self.loader,self.clock,self.ttl=cache,loader,clock,ttl\n    def fetch(self,tenant,user_id):\n        key=(tenant,user_id)\n        value=self.cache.get(key,self.clock())\n        if not value:\n            value=self.loader(tenant,user_id)\n            self.cache.put(key,value,self.clock(),self.ttl)\n        return value\n"
+    }
+  },
+  "refund_ledger": {
+    "fixes": {
+      "refunds.py": "from copy import deepcopy\nfrom amounts import valid_amount\n\ndef refund(orders, ledger, order_id, request_id, amount):\n    valid_amount(amount)\n    if request_id in ledger:\n        entry=ledger[request_id]\n        if entry[\"order_id\"]!=order_id or entry[\"amount\"]!=amount: raise ValueError(\"conflict\")\n        return deepcopy(entry)\n    if order_id not in orders: raise ValueError(\"unknown order\")\n    order=orders[order_id]\n    if order[\"status\"] not in (\"paid\",\"partially_refunded\"): raise ValueError(\"invalid state\")\n    total=order[\"refunded\"]+amount\n    if total>order[\"paid\"]: raise ValueError(\"excess\")\n    entry={\"order_id\":order_id,\"amount\":amount,\"refunded_total\":total}\n    order[\"refunded\"]=total\n    order[\"status\"]=\"refunded\" if total==order[\"paid\"] else \"partially_refunded\"\n    ledger[request_id]=deepcopy(entry)\n    return deepcopy(entry)\n",
+      "amounts.py": "def valid_amount(amount):\n    if type(amount) is not int or amount<=0: raise ValueError(\"invalid amount\")\n"
+    },
+    "partial": {
+      "refunds.py": "from amounts import valid_amount\ndef refund(orders,ledger,order_id,request_id,amount):\n    valid_amount(amount)\n    order=orders[order_id];order[\"refunded\"]+=amount\n    if order[\"refunded\"]>order[\"paid\"]:raise ValueError(\"excess\")\n    entry={\"order_id\":order_id,\"amount\":amount,\"refunded_total\":order[\"refunded\"]}\n    ledger[request_id]=entry\n    return entry\n"
+    }
+  }
+}

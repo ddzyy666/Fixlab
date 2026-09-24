@@ -1,0 +1,3 @@
+{
+  "task": "Fix slug to strip surrounding whitespace, lowercase, and join whitespace-separated words using a single hyphen."
+}

@@ -1,0 +1,3 @@
+{
+  "task": "Fix checkout total across checkout.py and money.py. Inputs are nonnegative decimal strings, discount is a decimal string from 0 through 1 inclusive. Use exact Decimal arithmetic, sum first, apply discount once, then round HALF_UP to two decimals; return a string with two decimal digits. Empty cart returns 0.00. Invalid or nonfinite prices/rates raise ValueError."
+}

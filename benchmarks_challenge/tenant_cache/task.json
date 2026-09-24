@@ -1,0 +1,3 @@
+{
+  "task": "Fix profile caching across service.py and cache.py. Service.fetch(tenant,user_id) returns profile dictionaries from loader(tenant,user_id). Keys must include tenant and user_id. Empty dictionaries are valid cached hits. Expiry is absolute: expired when now >= insertion_time + ttl, hits never extend lifetime, ttl=0 is never a hit. clock is injected and times are numeric; ttl is nonnegative. Cache.put must deep-copy values, Cache.get and Service.fetch must return deep independent copies. Cache.get returns None for missing/expired entries. Loader exceptions propagate and must not cache a failure or partial entry. Keep APIs. Public reproduction: two tenants sharing user ID receive the same profile."
+}

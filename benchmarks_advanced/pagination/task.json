@@ -1,0 +1,3 @@
+{
+  "task": "Fix catalog pagination across catalog.py and paging.py: page is one-based; page and size must be positive integers (reject bool with ValueError); return a fresh slice, with [] beyond the end. Keep public APIs."
+}

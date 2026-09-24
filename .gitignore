@@ -1,0 +1,11 @@
+__pycache__/
+*.egg-info/
+.venv/
+.fixlab/
+.env
+fixlab.local.toml
+
+.vscode/
+.env.*
+*.pem
+*.key
