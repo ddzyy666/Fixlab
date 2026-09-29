@@ -6,6 +6,7 @@ from fixlab.core import DemoModel
 from fixlab.evaluation import acceptance, snapshot
 
 
+
 class BenchmarkTests(unittest.TestCase):
     def test_all_fixtures_fail_initial_acceptance(self):
         for repo in Path('benchmarks').glob('*/repo'):
