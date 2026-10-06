@@ -40,7 +40,7 @@ class ComparisonTests(unittest.TestCase):
 
     def test_repeated_pairs_use_same_sources_and_alternate_order(self):
         calls=[]
-        def fake_evaluate(suite, output, factory, max_steps, executor=None):
+        def fake_evaluate(suite, output, factory, max_steps, executor=None, budget_options=None):
             calls.append((str(suite),str(output),factory().self_check_enabled,max_steps))
             return {'token_usage_complete':True,'results':[{'task_id':'addition','source_sha256':'same',
                     'repair_success':True,'tokens':{'total_tokens':10},'execution_seconds':2}]}

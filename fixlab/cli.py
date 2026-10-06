@@ -12,6 +12,7 @@ from .importer import import_task
 from .resume import inspect_resume, resume_task
 from .delivery import deliver
 import sys
+from .budget import validate
 
 
 def _main():
@@ -67,7 +68,20 @@ def _main():
     delivery.add_argument("--branch")
     delivery.add_argument("--output")
     delivery.add_argument("--apply", action="store_true")
+    for command in (repair, batch, comparison, resume):
+        command.add_argument('--max-tokens', type=int, help='Cumulative per-task reported token limit')
+        command.add_argument('--max-seconds', type=float, help='Cumulative cooperative agent runtime limit')
+        command.add_argument('--input-price', type=float, help='Input price per million tokens')
+        command.add_argument('--output-price', type=float, help='Output price per million tokens')
+        command.add_argument('--currency', help='Currency label for user-supplied prices')
     args = parser.parse_args()
+    budget_options = {key: getattr(args, key) for key in
+                      ('max_tokens', 'max_seconds', 'input_price', 'output_price', 'currency')
+                      if getattr(args, key, None) is not None}
+    try:
+        validate(budget_options)
+    except ValueError as error:
+        parser.error(str(error))
     if args.command == "deliver":
         try:
             result = deliver(args.state,args.repository,args.commit,args.branch,args.output,args.apply)
@@ -77,7 +91,7 @@ def _main():
         return
     if args.command == "resume":
         try:
-            result = inspect_resume(args.state,args.max_steps) if args.inspect else resume_task(args.state,args.config,args.max_steps)
+            result = inspect_resume(args.state,args.max_steps) if args.inspect else resume_task(args.state,args.config,args.max_steps,budget_options=budget_options)
         except Exception as error:
             if isinstance(error,(ValueError,FileNotFoundError)):
                 parser.error(str(error))
@@ -130,7 +144,7 @@ def _main():
         print(f"Comparison output: {Path(output).resolve()}", flush=True)
         try:
             result = compare(args.suite, output, lambda enabled: APIModel(**config, self_check=enabled),
-                             args.repeats, args.max_steps, args.task_id, Executor(args.backend, args.image))
+                             args.repeats, args.max_steps, args.task_id, Executor(args.backend, args.image), budget_options=budget_options or None)
         except (ValueError, OSError, RuntimeError) as error:
             parser.error(str(error))
         print(json.dumps(result["groups"], ensure_ascii=False, indent=2))
@@ -140,7 +154,7 @@ def _main():
         print(f"Evaluation output: {Path(output).resolve()}", flush=True)
         try:
             result = evaluate(args.suite, output, lambda: APIModel(**config, self_check=args.self_check == "on"),
-                              args.max_steps, args.task_id, Executor(args.backend, args.image))
+                              args.max_steps, args.task_id, Executor(args.backend, args.image), budget_options=budget_options or None)
         except (ValueError, OSError, RuntimeError) as error:
             parser.error(str(error))
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -149,7 +163,7 @@ def _main():
     print(f"Task state: {Path(state).resolve()}", flush=True)
     try:
         result = run_evaluated(Workspace(args.workspace, Executor(args.backend, args.image)), APIModel(**config, self_check=args.self_check == "on"), args.task,
-                               state, args.max_steps)
+                               state, args.max_steps, budget_options=budget_options or None)
     except (ValueError, RuntimeError) as error:
         parser.error(str(error))
     print(json.dumps(result, ensure_ascii=False, indent=2))

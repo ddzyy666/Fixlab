@@ -42,6 +42,7 @@ def inspect_resume(state, max_steps=None):
             'model':model,'backend':baseline.get('backend','local'),
             'image':baseline.get('image') or 'python:3.11-slim',
             'self_check':baseline.get('self_check_enabled',report.get('self_check_enabled',True)),
+            'budget':baseline.get('budget', {}),
             'max_steps':limit,'used_steps':steps,'remaining_steps':max(0,limit-steps),
             'already_completed':any(k=='completed' for k,p in events)}
 
@@ -79,7 +80,7 @@ def refresh_batch(state, report):
             'updated_batch':str(path)})
 
 
-def resume_task(state, config_path='fixlab.local.toml', max_steps=None, model_factory=None):
+def resume_task(state, config_path='fixlab.local.toml', max_steps=None, model_factory=None, budget_options=None):
     plan=inspect_resume(state,max_steps)
     state=Path(plan['state']);output=state.parent/(state.stem+'-artifacts');report_path=output/'report.json'
     if plan['already_completed']:
@@ -94,7 +95,7 @@ def resume_task(state, config_path='fixlab.local.toml', max_steps=None, model_fa
         save_json(history/(uuid4().hex+'.json'),json.loads(report_path.read_text(encoding='utf-8')))
     try:
         return run_evaluated(Workspace(plan['workspace'],Executor(plan['backend'],plan['image'])),
-                             model,plan['task'],state,plan['max_steps'])
+                             model,plan['task'],state,plan['max_steps'], budget_options=({**plan['budget'], **budget_options} if budget_options else None))
     finally:
         if report_path.exists():
             report=json.loads(report_path.read_text(encoding='utf-8'))

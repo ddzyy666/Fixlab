@@ -5,10 +5,12 @@ import json
 from pathlib import Path
 
 from .core import Workspace
+from .budget import validate
 from .evaluation import run_evaluated, save_json, snapshot
 
 
-def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=None):
+def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=None, budget_options=None):
+    validate(budget_options)
     if executor:
         executor.check()
     suite, output = Path(suite).resolve(), Path(output).resolve()
@@ -41,7 +43,7 @@ def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=
     def persist():
         summary.update({"tasks_total": len(tasks), "tasks_finished": len(rows),
                         "successes": sum(r.get("repair_success", False) for r in rows),
-                        "results": rows, "max_steps": max_steps})
+                        "results": rows, "max_steps": max_steps, "budget": budget_options or {}})
         summary["success_rate"] = summary["successes"] / len(tasks)
         known = [r.get("tokens", {}).get("total_tokens") for r in rows]
         summary["reported_total_tokens"] = sum(v for v in known if v is not None)
@@ -64,7 +66,7 @@ def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=
         error_type = None
         try:
             report = run_evaluated(Workspace(repo, executor), model_factory(), description,
-                                   folder / "state.sqlite", max_steps, hidden)
+                                   folder / "state.sqlite", max_steps, hidden, budget_options)
         except Exception as error:
             # Do not persist provider error text, which may contain credentials.
             error_type = type(error).__name__

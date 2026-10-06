@@ -6,6 +6,7 @@ from pathlib import Path
 from statistics import mean
 
 from .benchmark import evaluate
+from .budget import validate
 from .evaluation import snapshot, save_json
 
 
@@ -48,7 +49,8 @@ def aggregate(runs, expected):
     return groups, pairs
 
 
-def compare(suite, output, model_factory, repeats=3, max_steps=12, task_id=None, executor=None):
+def compare(suite, output, model_factory, repeats=3, max_steps=12, task_id=None, executor=None, budget_options=None):
+    validate(budget_options)
     if repeats < 1 or max_steps < 1:
         raise ValueError('Repeats and max_steps must be positive')
     suite, output = Path(suite).resolve(), Path(output).resolve()
@@ -91,7 +93,7 @@ def compare(suite, output, model_factory, repeats=3, max_steps=12, task_id=None,
     source_hash = hashlib.sha256(json.dumps(frozen, sort_keys=True).encode()).hexdigest()
     code_hash = hashlib.sha256(b''.join(p.name.encode() + p.read_bytes() for p in sorted(Path(__file__).parent.glob('*.py')))).hexdigest()
     result = {'model': model_name, 'suite_sha256': source_hash, 'harness_sha256': code_hash,
-              'repeats': repeats, 'max_steps': max_steps,
+              'repeats': repeats, 'max_steps': max_steps, 'budget': budget_options or {},
               'backend': executor.backend if executor else 'local',
               'image': executor.image if executor and executor.backend == 'docker' else None,
               'status': 'running', 'runs': []}
@@ -124,7 +126,7 @@ def compare(suite, output, model_factory, repeats=3, max_steps=12, task_id=None,
                     return model
                 batch = output / f'repeat-{repeat:02d}-{mode}'
                 print(f'Comparison repeat {repeat}/{repeats}, self-check {mode}', flush=True)
-                summary = evaluate(frozen_root, batch, factory, max_steps, executor=executor)
+                summary = evaluate(frozen_root, batch, factory, max_steps, executor=executor, budget_options=budget_options)
                 result['runs'].append({'repeat': repeat, 'mode': mode, 'path': str(batch), 'summary': summary})
                 persist()
         result['status'] = 'completed'

@@ -9,3 +9,6 @@ fixlab.local.toml
 .env.*
 *.pem
 *.key
+
+build/
+dist/

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .core import Store, run, APIModel
 from .execution import Executor
+from .budget import Budget, BudgetExceeded, validate, accounting
 
 IGNORED = {".git", ".fixlab", ".venv", "venv", "__pycache__", ".env", "fixlab.local.toml"}
 
@@ -101,7 +102,9 @@ def write_diff(path, before, after):
     path.write_text("".join(parts), encoding="utf-8")
 
 
-def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None):
+def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None, budget_options=None):
+    if budget_options is not None:
+        validate(budget_options)
     workspace.executor.check()
     self_check_enabled = isinstance(model, APIModel) and model.self_check_enabled
     state = Path(state).resolve()
@@ -137,8 +140,11 @@ def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None):
             save_json(baseline_path, baseline)
         baseline.setdefault("model", getattr(model, "model", "scripted-demo"))
         baseline["max_steps"] = max_steps
+        baseline["budget"] = validate(budget_options if budget_options is not None else baseline.get("budget", {}))
         save_json(baseline_path, baseline)
         start = time.monotonic()
+        budget = Budget(store, baseline["budget"])
+        stop_reason = None
         status = "error"
         error_type = None
         def completion_check():
@@ -163,7 +169,11 @@ def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None):
             return {"passed": changed and public["passed"] and diagnostic["passed"], "code_changed": changed,
                     "public_acceptance": public, "self_check": diagnostic}
         try:
-            status = run(store, workspace, model, task, max_steps, completion_check)
+            status = run(store, workspace, model, task, max_steps, completion_check, budget)
+        except BudgetExceeded as error:
+            status = "budget_exhausted"
+            stop_reason = error.reason
+            store.add("budget_exhausted", {"reason": stop_reason})
         except BaseException as error:
             error_type = type(error).__name__
             raise
@@ -196,7 +206,9 @@ def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None):
                 "changed_test_files": sorted(k for k in before.keys() | after.keys()
                                              if is_test(k) and before.get(k) != after.get(k)),
                 "model": getattr(model, "model", "scripted-demo"),
-                "tokens": tokens, "cost": None,
+                "tokens": tokens, "cost": accounting(events, baseline["budget"])["cost"],
+                "budget": baseline["budget"],
+                "budget_stop_reason": stop_reason or ("max_steps" if status == "budget_exhausted" else None),
                 "self_check_calls": sum(k == "tool_started" and p["function"]["name"] == "self_check" for k, p in events),
                 "self_check_final": next((p for k, p in reversed(events) if k == "self_check_final"), None),
                 "api_retry_events": [p for k, p in events if k == "api_retry"],
@@ -205,6 +217,8 @@ def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None):
                 "execution_seconds": sum(p for k, p in events if k == "execution_seconds"),
                 "state": str(state), "artifacts": str(output),
             }
+            if report["cost"] is not None and error_type:
+                report["cost"]["complete"] = False
             save_json(output / "report.json", report)
         return report
     finally:

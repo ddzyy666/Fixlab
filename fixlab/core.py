@@ -107,10 +107,13 @@ class APIModel:
         self.api_key = api_key
         self.api_base = api_base.rstrip("/")
         self.on_retry = None
+        self.before_request = None
         self.self_check_enabled = self_check
 
     def reply(self, messages):
         for attempt in range(3):
+            if self.before_request:
+                self.before_request()
             print(f"[model] Request {attempt + 1}/3; waiting for response (90s timeout)", file=sys.stderr, flush=True)
             try:
                 return self._reply_once(messages)
@@ -155,9 +158,10 @@ class DemoModel:
             "function": {"name": name, "arguments": json.dumps(args)}}]}, {}
 
 
-def run(store, workspace, model, task, max_steps=12, completion_check=None):
+def run(store, workspace, model, task, max_steps=12, completion_check=None, budget=None):
     if isinstance(model, APIModel):
         model.on_retry = lambda payload: store.add("api_retry", payload)
+        model.before_request = budget.check if budget else None
     enabled = isinstance(model, APIModel) and model.self_check_enabled
     workspace.self_check_enabled = enabled
     events = store.events()
@@ -198,11 +202,15 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None):
         messages.append(instruction)
     steps = sum(m["role"] == "assistant" for m in messages)
     while True:
+        if budget:
+            budget.check()
         # Finish durable tool requests before requesting another model response.
         assistant = next((m for m in reversed(messages) if m["role"] == "assistant"), {})
         for call in assistant.get("tool_calls", []) or []:
             if call["id"] in finished:
                 continue
+            if budget:
+                budget.check()
             print(f"[tool] {call['function']['name']}", file=sys.stderr, flush=True)
             store.add("tool_started", {"id": call["id"], "function": call["function"]})
             try:
@@ -213,6 +221,8 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None):
             store.add("message", message)
             messages.append(message)
             finished.add(call["id"])
+        if budget:
+            budget.check()
         if assistant and not assistant.get("tool_calls") and messages[-1]["role"] == "assistant":
             check = completion_check() if completion_check else {"passed": True}
             store.add("completion_check", check)
@@ -227,6 +237,8 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None):
         if steps >= max_steps:
             store.add("budget_exhausted", {"steps": steps})
             return "budget_exhausted"
+        if budget:
+            budget.check()
         message, usage = model.reply(messages)
         # Persist response and accounting atomically for resume consistency.
         with store.db:

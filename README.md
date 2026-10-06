@@ -212,3 +212,20 @@ API 密钥和服务地址仍从当前本地配置读取，可通过 `--config` �
 报告现在分开记录 `patch_status`（passed/failed）、`execution_status`（completed/interrupted/budget_exhausted）、`self_check_status`（disabled/passed/incomplete）及 `error_type`。`incomplete` 表示本轮尚未确认自检完成；具体失败用例仍查看 `self_check_final`。补丁通过而 API 断连时，补丁可显示 passed，执行显示 interrupted，整体 repair_success 仍为 false。
 
 resume 保留原单任务报告及批次汇总到 resume-history，再更新包含该任务的 summary.json。token 和耗时累计，不删除历史重试记录，缺失用量不会因恢复成功被标为完整。如果任务属于对照实验，保留原 comparison.json 并写入 resume-notice.json，避免把额外预算的续跑混入原实验；需新建配对实验作正式比较。当前不支持并发恢复同一任务或同时修改同一批次汇总。
+
+## 补丁交付、CI 与进度提示
+
+- [补丁交付说明](docs/patch-delivery.md)：`deliver` 默认预览，`--apply` 新建独立分支和 worktree，交付前后重新验收，不自动提交或推送。
+- `.github/workflows/tests.yml` 在 push / pull request 时进行 Windows、Linux 和 Python 3.11、3.13 的安装与单元测试；不使用 API Key 或调用模型。此工作流需要推送后才会在 GitHub 实际执行。
+- 模型请求显示尝试次数和 90 秒超时，临时失败显示退避重试，工具执行显示名称；输出在 stderr，不打印密钥或请求正文。
+- Ctrl+C 以退出码 130 友好退出。现有 finally 路径保存状态并执行容器清理；中断的工具仍可能结果不明，续跑前应先 `resume --inspect`。
+
+## 资源预算
+
+支持累计 Token 上限、Agent 协作式运行时限及用户单价费用估算，续跑继承已用额度。
+
+```powershell
+python -m fixlab evaluate benchmarks --backend docker --max-tokens 50000 --max-seconds 300
+```
+
+限制按每个任务计算，在操作之间检查，可能超出当前请求或工具的消耗；并非硬性费用或进程墙钟封顶。详情见 [资源预算说明](docs/resource-budgets.md)。
