@@ -13,6 +13,7 @@ from .resume import inspect_resume, resume_task
 from .delivery import deliver
 import sys
 from .budget import validate
+from .dashboard import generate
 
 
 def _main():
@@ -29,6 +30,9 @@ def _main():
     repair.add_argument("--max-steps", type=int, default=12)
     report = commands.add_parser("report")
     report.add_argument("state")
+    dashboard = commands.add_parser("dashboard", help="Generate an offline read-only HTML report")
+    dashboard.add_argument("source", nargs="?", default=".fixlab")
+    dashboard.add_argument("--output", default=".fixlab/reports/index.html")
     batch = commands.add_parser("evaluate")
     batch.add_argument("suite", nargs="?", default="benchmarks")
     batch.add_argument("--output")
@@ -82,6 +86,13 @@ def _main():
         validate(budget_options)
     except ValueError as error:
         parser.error(str(error))
+    if args.command == "dashboard":
+        try:
+            result = generate(args.source, args.output)
+        except (ValueError, OSError) as error:
+            parser.error(str(error))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     if args.command == "deliver":
         try:
             result = deliver(args.state,args.repository,args.commit,args.branch,args.output,args.apply)

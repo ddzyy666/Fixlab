@@ -91,9 +91,11 @@ class BudgetTests(unittest.TestCase):
 
     def test_expired_time_saves_report_without_model_call(self):
         with tempfile.TemporaryDirectory() as folder:
-            with patch.object(Repair, 'reply', side_effect=AssertionError('Must not call API')):
+            from itertools import count
+            with patch.object(Repair, 'reply', side_effect=AssertionError('Must not call API')), \
+                 patch('fixlab.budget.time.monotonic', side_effect=count()):
                 summary = evaluate('benchmarks', Path(folder)/'eval', Repair, task_id='addition',
-                                   budget_options={'max_seconds': 1e-12})
+                                   budget_options={'max_seconds': 1})
             row = summary['results'][0]
             self.assertEqual(row['budget_stop_reason'], 'max_seconds')
             self.assertEqual(row['execution_status'], 'budget_exhausted')

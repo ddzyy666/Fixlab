@@ -229,3 +229,12 @@ python -m fixlab evaluate benchmarks --backend docker --max-tokens 50000 --max-s
 ```
 
 限制按每个任务计算，在操作之间检查，可能超出当前请求或工具的消耗；并非硬性费用或进程墙钟封顶。详情见 [资源预算说明](docs/resource-budgets.md)。
+
+## 本地报告页面
+
+```powershell
+python -m fixlab dashboard .fixlab/evals
+Start-Process .fixlab/reports/index.html
+```
+
+离线查看任务列表、状态、预算、测试结果、执行轨迹与代码差异；支持搜索和结果筛选。重新生成可更新快照，不调用模型或修改任务记录。详细用法及读取上限见 [报告页面说明](docs/dashboard.md)。
