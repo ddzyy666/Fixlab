@@ -12,6 +12,7 @@ from pathlib import Path
 from .core import Store, run, APIModel
 from .execution import Executor
 from .budget import Budget, BudgetExceeded, validate, accounting
+from .locking import exclusive
 
 IGNORED = {".git", ".fixlab", ".venv", "venv", "__pycache__", ".env", "fixlab.local.toml"}
 
@@ -103,6 +104,21 @@ def write_diff(path, before, after):
 
 
 def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None, budget_options=None):
+    state = Path(state).resolve()
+    if state.is_relative_to(workspace.root):
+        raise ValueError('State and reports must be outside the target workspace')
+    # Batch before task before workspace: one lock order across all write paths.
+    from contextlib import ExitStack
+    with ExitStack() as locks:
+        batch = state.parent.parent
+        if (batch / 'summary.json').exists():
+            locks.enter_context(exclusive(batch, 'batch'))
+        locks.enter_context(exclusive(state, 'task'))
+        locks.enter_context(exclusive(workspace.root, 'workspace'))
+        return _run_evaluated(workspace, model, task, state, max_steps, hidden, budget_options)
+
+
+def _run_evaluated(workspace, model, task, state, max_steps=12, hidden=None, budget_options=None):
     if budget_options is not None:
         validate(budget_options)
     workspace.executor.check()
@@ -212,6 +228,7 @@ def run_evaluated(workspace, model, task, state, max_steps=12, hidden=None, budg
                 "self_check_calls": sum(k == "tool_started" and p["function"]["name"] == "self_check" for k, p in events),
                 "self_check_final": next((p for k, p in reversed(events) if k == "self_check_final"), None),
                 "api_retry_events": [p for k, p in events if k == "api_retry"],
+                "api_requests": [p for k, p in events if k == "api_request"],
                 "usage_may_be_incomplete": any(k == "api_retry" for k, p in events),
                 "completion_rejections": sum(k == "completion_check" and not p["passed"] for k, p in events),
                 "execution_seconds": sum(p for k, p in events if k == "execution_seconds"),

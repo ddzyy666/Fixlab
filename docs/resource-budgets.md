@@ -25,7 +25,7 @@ python -m fixlab resume .fixlab/evals/<批次ID>/addition/state.sqlite --max-tok
 
 返回 `agent_status=budget_exhausted`，`budget_stop_reason` 分别为 `max_steps`、`max_tokens`、`max_seconds` 或 `token_usage_unknown`。预算停止不代表补丁已成功：`repair_success` 仍要求 Agent 正常完成及验收通过。已保存但尚未执行的工具请求可在提高预算后继续执行；已经完成的工具不会重放。
 
-启用 Token 限制时，如果某次请求缺少总 Token 用量或曾发生失败请求（可能计费但用量未知），停止后续请求，原因是 `token_usage_unknown`。提高数字不能消除用量未知的事实；应检查服务端账单，另建任务。本模块不擅自清除历史记录。
+启用 Token 限制时，如果某次请求缺少总 Token 用量或曾发生失败请求（可能计费但用量未知），停止后续请求，原因是 `token_usage_unknown`。提高数字不能消除用量未知的事实。默认停止；如明确接受统计不完整，可用 `--unknown-usage allow` 续跑。本模块不清除历史记录。
 
 ## 费用字段
 
@@ -34,3 +34,16 @@ python -m fixlab resume .fixlab/evals/<批次ID>/addition/state.sqlite --max-tok
 例如：`--input-price 1 --output-price 2 --currency CNY` 仅演示参数格式，**不是任何模型的实际报价**。
 
 本模块的离线测试覆盖耗尽前拦截写文件、累计续跑、时间耗尽、未知用量、失败请求、费用标记及 CLI 参数传递，不调用付费模型。
+
+
+## 断连后的显式恢复
+
+`--unknown-usage stop` 是新任务默认策略；`--unknown-usage allow` 允许存在失败请求或缺失 usage 时继续。策略保存在任务预算中，后续续跑继承，可显式切回 stop。状态库的 usage_policy 事件记录策略变更。
+
+allow 不清除失败请求、不补造 Token 数，也不重置累计额度。已知 Token 上限、时间和步数限制仍生效；真实费用可能超过已报告用量对应的估算。每次模型调用仍最多尝试 3 次，沿用 1、2 秒退避，不无限重试。
+
+```powershell
+python -m fixlab resume .fixlab/evals/<批次ID>/<任务ID>/state.sqlite --unknown-usage allow --max-steps 30 --max-tokens 200000 --max-seconds 900
+```
+
+新增 api_request 事件记录请求开始 UTC 时间、请求体字节数、消息条数、90 秒超时设置，以及结束后的耗时和成功/异常类型；不记录密钥、请求正文或原始异常文本。旧请求不能补录诊断字段。发生进程强制终止时可能只有 started 事件。

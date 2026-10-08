@@ -12,3 +12,4 @@ fixlab.local.toml
 
 build/
 dist/
+*.fixlab-*.lock

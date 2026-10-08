@@ -8,6 +8,7 @@ from .core import APIModel, Workspace
 from .config import load_config
 from .execution import Executor
 from .evaluation import run_evaluated, save_json
+from .locking import exclusive
 
 
 def inspect_resume(state, max_steps=None):
@@ -48,20 +49,39 @@ def inspect_resume(state, max_steps=None):
 
 
 def refresh_batch(state, report):
+    with exclusive(Path(state).resolve().parent.parent, 'batch'):
+        return _refresh_batch(state, report)
+
+
+def _refresh_batch(state, report):
     state=Path(state).resolve(); path=state.parent.parent/'summary.json'
     if not path.exists(): return
     summary=json.loads(path.read_text(encoding='utf-8'))
     matching=[i for i,r in enumerate(summary.get('results',[])) if r.get('state') and Path(r['state']).resolve()==state]
-    if len(matching)!=1: return
+    if len(matching)>1:
+        raise ValueError('Duplicate task states in batch summary')
+    if not matching:
+        metadata_path=state.parent/'task.json'
+        if not metadata_path.exists(): return
+        metadata=json.loads(metadata_path.read_text(encoding='utf-8'))
+        if len(summary.get('results',[])) >= summary['tasks_total']:
+            raise ValueError('Batch summary already contains all task slots')
+        previous={'task_id':state.parent.name, 'source_sha256':metadata['source_sha256']}
+        index=len(summary.setdefault('results',[]))
+    else:
+        index=matching[0]; previous=summary['results'][index]
     # Preserve initial experiment evidence before changing the aggregate.
     archive=path.parent/'resume-history';archive.mkdir(exist_ok=True)
     save_json(archive/(uuid4().hex+'.json'),summary)
-    index=matching[0]; previous=summary['results'][index]
     outcome = ('execution_error' if report.get('error_type') else
                'baseline_already_passed' if report['baseline_acceptance']['passed'] else
                'repaired' if report['repair_success'] else
                'budget_exhausted' if report['agent_status']=='budget_exhausted' else 'acceptance_failed')
-    summary['results'][index]={**previous,**report,'outcome':outcome,'resumed':True}
+    updated={**previous,**report,'outcome':outcome,'resumed':True}
+    if matching:
+        summary['results'][index]=updated
+    else:
+        summary['results'].append(updated)
     rows=summary['results']
     summary['successes']=sum(bool(r.get('repair_success')) for r in rows)
     summary['tasks_finished']=len(rows)
@@ -81,11 +101,26 @@ def refresh_batch(state, report):
 
 
 def resume_task(state, config_path='fixlab.local.toml', max_steps=None, model_factory=None, budget_options=None):
+    state=Path(state).resolve()
+    if not state.is_file():
+        raise ValueError('State file does not exist')
+    from contextlib import ExitStack
+    with ExitStack() as locks:
+        batch=state.parent.parent
+        if (batch/'summary.json').exists():
+            locks.enter_context(exclusive(batch,'batch'))
+        locks.enter_context(exclusive(state,'task'))
+        return _resume_task(state,config_path,max_steps,model_factory,budget_options)
+
+
+def _resume_task(state, config_path='fixlab.local.toml', max_steps=None, model_factory=None, budget_options=None):
     plan=inspect_resume(state,max_steps)
     state=Path(plan['state']);output=state.parent/(state.stem+'-artifacts');report_path=output/'report.json'
     if plan['already_completed']:
         if not report_path.exists(): raise ValueError('Completed state has no report')
-        return json.loads(report_path.read_text(encoding='utf-8'))
+        report=json.loads(report_path.read_text(encoding='utf-8'))
+        refresh_batch(state,report)
+        return report
     if plan['remaining_steps']==0:
         raise ValueError('No model steps remain; increase --max-steps (cumulative limit)')
     model=(model_factory(plan) if model_factory else

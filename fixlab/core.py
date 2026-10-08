@@ -6,8 +6,19 @@ import urllib.request
 import urllib.error
 import http.client
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from .execution import Executor
+from .test_output import summarize
+from .budget import BudgetExceeded
+
+FINISH_POLICY = (
+    "After your latest code edit, if run_tests and the required self_check have passed and no known issue remains, "
+    "finish with a concise final response without tool calls. If self_check is disabled, only run_tests is required. "
+    "Do not rerun unchanged tests or inspect unrelated files merely for reassurance. "
+    "A new code edit or new failure evidence justifies further validation. "
+    "The harness independently verifies completion; do not claim hidden tests passed."
+)
 
 
 TOOLS = [{"type": "function", "function": {
@@ -16,7 +27,25 @@ TOOLS = [{"type": "function", "function": {
                    "required": list(properties), "additionalProperties": False},
 }} for name, description, properties in [
     ("list_files", "List repository files", {}),
-    ("read_file", "Read a UTF-8 file", {"path": {"type": "string"}}),
+    ("search_text", "Search UTF-8 source files for a case-sensitive literal string (not regex). "
+     "Use path '.' to search the workspace, or specify a file/directory. Returns paths and 1-based "
+     "line numbers for read_file_lines. Protected files are excluded; inspect truncation and skipped counts.", {
+        "path": {"type": "string"}, "query": {"type": "string"},
+        "max_results": {"type": "integer", "minimum": 1, "maximum": 100},
+    }),
+    ("read_file", "Read the first 16000 characters of a UTF-8 file", {"path": {"type": "string"}}),
+    ("read_file_lines", "Read a UTF-8 file by inclusive 1-based line numbers, at most 200 lines.", {
+        "path": {"type": "string"},
+        "start_line": {"type": "integer"},
+        "end_line": {"type": "integer"},
+    }),
+    ("replace_text", "Replace exactly one occurrence of old_text in an existing UTF-8 file. "
+     "Use for localized edits instead of rewriting the whole file. Whitespace and newline bytes must match; "
+     "do not include line-number prefixes from read_file_lines.", {
+        "path": {"type": "string"},
+        "old_text": {"type": "string"},
+        "new_text": {"type": "string"},
+    }),
     ("write_file", "Write a complete UTF-8 file", {
         "path": {"type": "string"}, "content": {"type": "string"}}),
     ("run_tests", "Run unittest discovery in the repository", {}),
@@ -47,6 +76,7 @@ class Workspace:
         self.root = Path(root).resolve()
         self.executor = executor or Executor()
         self.self_check_enabled = True
+        self.log_dir = None
 
     def path(self, value):
         path = (self.root / value).resolve()
@@ -57,13 +87,19 @@ class Workspace:
         return path
 
     def execute(self, name, args):
+        if name == "search_text":
+            from .search import search_text
+            return json.dumps(search_text(self.root, args['path'], args['query'], args['max_results']), ensure_ascii=False)
         if name == "self_check":
             if not self.self_check_enabled:
                 raise ValueError("self_check is disabled for this run")
             if not args["requirements"].strip() or not args["test_code"].strip():
                 raise ValueError("Requirement checklist and unittest code are required")
             from .selfcheck import check
-            return json.dumps(check(self, args["test_code"]))
+            result = check(self, args["test_code"])
+            if result.get('passed'):
+                result = {k: v for k, v in result.items() if k != 'output'}
+            return json.dumps(result)
         if name == "list_files":
             return "\n".join(str(p.relative_to(self.root)) for p in self.root.rglob("*")
                              if p.is_file() and not any(x.startswith(".") or x == "__pycache__"
@@ -71,6 +107,52 @@ class Workspace:
         if name == "read_file":
             with self.path(args["path"]).open(encoding="utf-8") as stream:
                 return stream.read(16000)
+        if name == "read_file_lines":
+            start = args["start_line"]
+            end = args["end_line"]
+
+            if type(start) is not int or type(end) is not int:
+                raise ValueError("Line numbers must be integers")
+            if start < 1 or end < start:
+                raise ValueError("Require 1 <= start_line <= end_line")
+            if end - start + 1 > 200:
+                raise ValueError("Read at most 200 lines per call")
+
+            result = []
+            size = 0
+            with self.path(args["path"]).open(encoding="utf-8") as stream:
+                for number, line in enumerate(stream, start=1):
+                    if number < start:
+                        continue
+                    if number > end:
+                        break
+                    entry = f"{number}: {line}"
+                    size += len(entry)
+                    if size > 16000:
+                        raise ValueError("Output too large; request fewer lines")
+                    result.append(entry)
+
+            if not result:
+                raise ValueError("start_line is beyond the end of the file")
+            return "".join(result)
+        if name == "replace_text":
+            path = self.path(args["path"])
+            old, new = args["old_text"], args["new_text"]
+            if not isinstance(old, str) or not isinstance(new, str):
+                raise ValueError("old_text and new_text must be strings")
+            if not old:
+                raise ValueError("old_text cannot be empty")
+            if old == new:
+                raise ValueError("Replacement must change the text")
+            original = path.read_bytes()
+            original.decode("utf-8")  # Reject non-text files before writing.
+            old_bytes, new_bytes = old.encode("utf-8"), new.encode("utf-8")
+            first = original.find(old_bytes)
+            # Include overlapping occurrences when checking ambiguity.
+            if first < 0 or original.find(old_bytes, first + 1) >= 0:
+                raise ValueError("old_text must match exactly once; file unchanged")
+            path.write_bytes(original[:first] + new_bytes + original[first + len(old_bytes):])
+            return "Replaced exactly one occurrence"
         if name == "write_file":
             path = self.path(args["path"])
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,7 +162,7 @@ class Workspace:
             # A temporary file bounds memory use even for noisy test suites.
             import tempfile
             with tempfile.TemporaryFile() as output, tempfile.TemporaryDirectory() as cache:
-                args = ["-B", "-m", "unittest", "discover", "-v"]
+                args = ["-B", "-m", "unittest", "discover", "-q"]
                 if self.executor.backend == "local":
                     args = ["-X", f"pycache_prefix={cache}", *args]
                 if self.executor.backend == "docker":
@@ -96,8 +178,7 @@ class Workspace:
                 else:
                     result = self.executor.run(self.root, args, stdout=output, stderr=output, timeout=30)
                 output.seek(0)
-                return json.dumps({"exit_code": result.returncode,
-                                   "output": output.read(16000).decode("utf-8", errors="replace")})
+                return json.dumps(summarize(output, result.returncode, self.log_dir))
         raise ValueError(f"Unknown tool: {name}")
 
 
@@ -107,6 +188,7 @@ class APIModel:
         self.api_key = api_key
         self.api_base = api_base.rstrip("/")
         self.on_retry = None
+        self.on_request = None
         self.before_request = None
         self.self_check_enabled = self_check
 
@@ -138,9 +220,26 @@ class APIModel:
             "model": self.model, "messages": messages, "tools": [t for t in TOOLS if self.self_check_enabled or t["function"]["name"] != "self_check"],
         }).encode(), headers={"Authorization": "Bearer " + self.api_key,
                               "Content-Type": "application/json"})
-        with urllib.request.urlopen(request, timeout=90) as response:
-            data = json.load(response)
-        return data["choices"][0]["message"], data.get("usage", {})
+        start = time.monotonic()
+        diagnostic = {"started_at": datetime.now(timezone.utc).isoformat(),
+                      "request_bytes": len(request.data), "message_count": len(messages),
+                      "timeout_seconds": 90}
+        if self.on_request:
+            self.on_request({**diagnostic, "phase": "started"})
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                data = json.load(response)
+            result = data["choices"][0]["message"], data.get("usage", {})
+            diagnostic["outcome"] = "success"
+            return result
+        except BaseException as error:
+            diagnostic.update(outcome="error", error_type=type(error).__name__)
+            raise
+        finally:
+            diagnostic["elapsed_seconds"] = time.monotonic() - start
+            if self.on_request:
+                self.on_request({**diagnostic, "phase": "finished"})
+
 
 
 class DemoModel:
@@ -159,9 +258,12 @@ class DemoModel:
 
 
 def run(store, workspace, model, task, max_steps=12, completion_check=None, budget=None):
+    database = store.db.execute('PRAGMA database_list').fetchone()[2]
+    workspace.log_dir = Path(database).parent / (Path(database).stem + '-artifacts') / 'tool-logs'
     if isinstance(model, APIModel):
         model.on_retry = lambda payload: store.add("api_retry", payload)
         model.before_request = budget.check if budget else None
+        model.on_request = lambda payload: store.add("api_request", payload)
     enabled = isinstance(model, APIModel) and model.self_check_enabled
     workspace.self_check_enabled = enabled
     events = store.events()
@@ -180,6 +282,11 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None, budg
         events = store.events()
     elif events[0] != ("task", metadata):
         raise ValueError("Saved task/workspace does not match this run")
+    if budget:
+        policy = budget.options.get('unknown_usage', 'stop')
+        previous = next((p['unknown_usage'] for k,p in reversed(events) if k == 'usage_policy'), None)
+        if previous != policy:
+            store.add('usage_policy', {'unknown_usage': policy})
     if not modes:
         store.add("self_check_mode", {"enabled": enabled})
     started = {p["id"] for k, p in events if k == "tool_started"}
@@ -189,6 +296,12 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None, budg
     if any(k == "completed" for k, _ in events):
         return "completed"
     messages = [p for k, p in events if k == "message"]
+    if not any(k == 'finish_policy' for k, p in events):
+        store.add('finish_policy', {'version': 1, 'instruction': FINISH_POLICY})
+    # Apply to old tasks too, without inserting a message between a tool call and its reply.
+    messages = [dict(m) for m in messages]
+    if messages and messages[0]['role'] == 'system':
+        messages[0]['content'] += '\n' + FINISH_POLICY
     if enabled and not any(k == "self_check_policy" for k, p in events):
         instruction = {"role": "user", "content":
             "Before finishing, derive a checklist from ALL task requirements and call self_check with "
@@ -213,12 +326,19 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None, budg
                 budget.check()
             print(f"[tool] {call['function']['name']}", file=sys.stderr, flush=True)
             store.add("tool_started", {"id": call["id"], "function": call["function"]})
+            from .context import fingerprint
+            tracks_test = call['function']['name'] in ('run_tests', 'self_check')
+            before_hash = fingerprint(workspace) if tracks_test else None
             try:
                 output = workspace.execute(call["function"]["name"], json.loads(call["function"]["arguments"]))
             except Exception as error:
                 output = f"Tool error: {type(error).__name__}: {error}"
             message = {"role": "tool", "tool_call_id": call["id"], "content": output}
             store.add("message", message)
+            if tracks_test:
+                after_hash = fingerprint(workspace)
+                store.add('tool_observation', {'tool_call_id': call['id'], 'hash': after_hash,
+                                              'stable': before_hash == after_hash})
             messages.append(message)
             finished.add(call["id"])
         if budget:
@@ -239,7 +359,20 @@ def run(store, workspace, model, task, max_steps=12, completion_check=None, budg
             return "budget_exhausted"
         if budget:
             budget.check()
-        message, usage = model.reply(messages)
+        request_messages = messages
+        context_limit = budget.options.get('context_max_tokens') if budget else None
+        if context_limit is not None:
+            from .context import build_context, fingerprint
+            active_tools = [t for t in TOOLS if enabled or t['function']['name'] != 'self_check']
+            try:
+                context = build_context(messages, active_tools, context_limit, store.events(), fingerprint(workspace))
+            except BudgetExceeded:
+                store.add('context_build', {'version': 1, 'status': 'blocked', 'reason': 'context_limit',
+                                            'max_tokens': context_limit})
+                raise
+            store.add('context_build', context.audit)
+            request_messages = context.messages
+        message, usage = model.reply(request_messages)
         # Persist response and accounting atomically for resume consistency.
         with store.db:
             for kind, payload in [("message", message), ("usage", usage)]:

@@ -211,7 +211,7 @@ API 密钥和服务地址仍从当前本地配置读取，可通过 `--config` �
 
 报告现在分开记录 `patch_status`（passed/failed）、`execution_status`（completed/interrupted/budget_exhausted）、`self_check_status`（disabled/passed/incomplete）及 `error_type`。`incomplete` 表示本轮尚未确认自检完成；具体失败用例仍查看 `self_check_final`。补丁通过而 API 断连时，补丁可显示 passed，执行显示 interrupted，整体 repair_success 仍为 false。
 
-resume 保留原单任务报告及批次汇总到 resume-history，再更新包含该任务的 summary.json。token 和耗时累计，不删除历史重试记录，缺失用量不会因恢复成功被标为完整。如果任务属于对照实验，保留原 comparison.json 并写入 resume-notice.json，避免把额外预算的续跑混入原实验；需新建配对实验作正式比较。当前不支持并发恢复同一任务或同时修改同一批次汇总。
+resume 保留原单任务报告及批次汇总到 resume-history，再更新包含该任务的 summary.json。token 和耗时累计，不删除历史重试记录，缺失用量不会因恢复成功被标为完整。如果任务属于对照实验，保留原 comparison.json 并写入 resume-notice.json，避免把额外预算的续跑混入原实验；需新建配对实验作正式比较。同一任务、工作副本或批次的并发写入现由操作系统锁保护，发生竞争会报告 busy。
 
 ## 补丁交付、CI 与进度提示
 
@@ -238,3 +238,16 @@ Start-Process .fixlab/reports/index.html
 ```
 
 离线查看任务列表、状态、预算、测试结果、执行轨迹与代码差异；支持搜索和结果筛选。重新生成可更新快照，不调用模型或修改任务记录。详细用法及读取上限见 [报告页面说明](docs/dashboard.md)。
+
+## 批量续跑与并发保护
+
+```powershell
+python -m fixlab resume-batch .fixlab/evals/<批次ID> --inspect
+python -m fixlab resume-batch .fixlab/evals/<批次ID> --max-steps 20
+```
+
+跳过已完成任务，续跑中断任务，新批次可从冻结计划启动尚未开始的任务。旧批次只恢复有状态记录的任务。每次操作保留逐项日志并更新汇总；同一任务、工作副本及批次使用进程锁避免重复执行。详见 [批量续跑说明](docs/batch-resume.md)。
+
+## 上下文构建
+
+通过 `--context-max-tokens 16000` 显式启用请求上下文压缩；保留完整 SQLite 轨迹、任务要求及完整工具配对。摘要核对测试对应的文件指纹，避免把旧结果视为当前有效。参数是含工具定义和输出预留的估算预算，默认关闭，详见 [上下文说明](docs/context.md)。

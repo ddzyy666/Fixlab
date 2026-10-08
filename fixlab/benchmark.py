@@ -7,9 +7,15 @@ from pathlib import Path
 from .core import Workspace
 from .budget import validate
 from .evaluation import run_evaluated, save_json, snapshot
+from .locking import exclusive
 
 
 def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=None, budget_options=None):
+    with exclusive(output, 'batch'):
+        return _evaluate(suite, output, model_factory, max_steps, task_id, executor, budget_options)
+
+
+def _evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=None, budget_options=None):
     validate(budget_options)
     if executor:
         executor.check()
@@ -38,6 +44,17 @@ def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=
     if output.is_relative_to(suite):
         raise ValueError("Output must be outside benchmark sources")
     output.mkdir(parents=True, exist_ok=False)
+    # Freeze all inputs and non-secret model settings before the first task starts.
+    models = [model_factory() for _ in tasks]
+    plan = {'version': 1, 'max_steps': max_steps, 'budget': budget_options or {},
+            'backend': executor.backend if executor else 'local',
+            'image': executor.image if executor else 'python:3.11-slim', 'tasks': []}
+    for (name, description, files, hidden), model in zip(tasks, models):
+        digest = hashlib.sha256(json.dumps([description, files, hidden], sort_keys=True).encode()).hexdigest()
+        plan['tasks'].append({'task_id': name, 'task': description, 'files': files, 'hidden': hidden,
+                              'source_sha256': digest, 'model': getattr(model, 'model', 'scripted-demo'),
+                              'self_check': getattr(model, 'self_check_enabled', False)})
+    save_json(output / 'batch-plan.json', plan)
     rows = []
     summary = {}
     def persist():
@@ -51,7 +68,7 @@ def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=
             and not any(r.get("usage_may_be_incomplete") or r.get("error_type") for r in rows))
         save_json(output / "summary.json", summary)
     persist()
-    for task_id, description, files, hidden in tasks:
+    for (task_id, description, files, hidden), model in zip(tasks, models):
         print(f"[{len(rows)+1}/{len(tasks)}] {task_id}", flush=True)
         folder = output / task_id
         repo = folder / "workspace"
@@ -65,7 +82,7 @@ def evaluate(suite, output, model_factory, max_steps=12, task_id=None, executor=
         report = {}
         error_type = None
         try:
-            report = run_evaluated(Workspace(repo, executor), model_factory(), description,
+            report = run_evaluated(Workspace(repo, executor), model, description,
                                    folder / "state.sqlite", max_steps, hidden, budget_options)
         except Exception as error:
             # Do not persist provider error text, which may contain credentials.

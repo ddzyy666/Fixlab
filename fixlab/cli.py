@@ -14,6 +14,8 @@ from .delivery import deliver
 import sys
 from .budget import validate
 from .dashboard import generate
+from .batch_resume import resume_batch
+from .locking import BusyError
 
 
 def _main():
@@ -65,6 +67,11 @@ def _main():
     resume.add_argument("--config", default="fixlab.local.toml")
     resume.add_argument("--max-steps", type=int)
     resume.add_argument("--inspect", action="store_true", help="Show saved settings without calling the model")
+    batch_resume = commands.add_parser('resume-batch', help='Resume unfinished tasks in one evaluation batch')
+    batch_resume.add_argument('directory')
+    batch_resume.add_argument('--config', default='fixlab.local.toml')
+    batch_resume.add_argument('--max-steps', type=int)
+    batch_resume.add_argument('--inspect', action='store_true')
     delivery = commands.add_parser("deliver", help="Review or apply an accepted patch to a new worktree")
     delivery.add_argument("state")
     delivery.add_argument("repository")
@@ -72,20 +79,29 @@ def _main():
     delivery.add_argument("--branch")
     delivery.add_argument("--output")
     delivery.add_argument("--apply", action="store_true")
-    for command in (repair, batch, comparison, resume):
+    for command in (repair, batch, comparison, resume, batch_resume):
         command.add_argument('--max-tokens', type=int, help='Cumulative per-task reported token limit')
         command.add_argument('--max-seconds', type=float, help='Cumulative cooperative agent runtime limit')
         command.add_argument('--input-price', type=float, help='Input price per million tokens')
         command.add_argument('--output-price', type=float, help='Output price per million tokens')
         command.add_argument('--currency', help='Currency label for user-supplied prices')
+        command.add_argument('--unknown-usage', choices=['stop', 'allow'], help='Stop by default; allow explicitly accepts incomplete token accounting')
+        command.add_argument('--context-max-tokens', type=int, help='Estimated request context budget including tools and 2048 output reserve; opt-in')
     args = parser.parse_args()
     budget_options = {key: getattr(args, key) for key in
-                      ('max_tokens', 'max_seconds', 'input_price', 'output_price', 'currency')
+                      ('max_tokens', 'max_seconds', 'input_price', 'output_price', 'currency', 'unknown_usage', 'context_max_tokens')
                       if getattr(args, key, None) is not None}
     try:
         validate(budget_options)
     except ValueError as error:
         parser.error(str(error))
+    if args.command == 'resume-batch':
+        try:
+            result = resume_batch(args.directory, args.config, args.max_steps, budget_options, inspect=args.inspect)
+        except (ValueError, OSError, RuntimeError) as error:
+            parser.error(str(error))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     if args.command == "dashboard":
         try:
             result = generate(args.source, args.output)
@@ -104,7 +120,7 @@ def _main():
         try:
             result = inspect_resume(args.state,args.max_steps) if args.inspect else resume_task(args.state,args.config,args.max_steps,budget_options=budget_options)
         except Exception as error:
-            if isinstance(error,(ValueError,FileNotFoundError)):
+            if isinstance(error,(ValueError,FileNotFoundError,BusyError)):
                 parser.error(str(error))
             parser.error(f"Resume failed: {type(error).__name__}; inspect report and retry events")
         print(json.dumps(result,ensure_ascii=False,indent=2))

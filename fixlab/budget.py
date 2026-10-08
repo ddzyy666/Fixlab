@@ -11,9 +11,13 @@ class BudgetExceeded(Exception):
 
 def validate(options):
     options = dict(options or {})
-    allowed = {'max_tokens', 'max_seconds', 'input_price', 'output_price', 'currency'}
+    allowed = {'max_tokens', 'max_seconds', 'input_price', 'output_price', 'currency', 'unknown_usage', 'context_max_tokens'}
     if options.keys() - allowed:
         raise ValueError('Unknown budget option')
+    if options.get('context_max_tokens') is not None and (type(options['context_max_tokens']) is not int or options['context_max_tokens'] <= 2048):
+        raise ValueError('context_max_tokens must be an integer greater than 2048')
+    if options.get('unknown_usage', 'stop') not in ('stop', 'allow'):
+        raise ValueError('unknown_usage must be stop or allow')
     for key in ('max_tokens', 'max_seconds', 'input_price', 'output_price'):
         value = options.get(key)
         if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))
@@ -59,7 +63,7 @@ class Budget:
         limit = self.options.get('max_tokens')
         if limit is not None:
             usage = [p for k, p in events if k == 'usage']
-            if any(p.get('total_tokens') is None for p in usage) or any(k == 'api_retry' for k, p in events):
+            if self.options.get('unknown_usage', 'stop') == 'stop' and (any(p.get('total_tokens') is None for p in usage) or any(k == 'api_retry' for k, p in events)):
                 raise BudgetExceeded('token_usage_unknown')
             if sum(p.get('total_tokens') or 0 for p in usage) >= limit:
                 raise BudgetExceeded('max_tokens')
